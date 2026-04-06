@@ -8,7 +8,7 @@
 ![Routes](https://img.shields.io/badge/routes-59-blue?style=flat-square)
 ![Packages](https://img.shields.io/badge/packages-15-blueviolet?style=flat-square)
 ![Components](https://img.shields.io/badge/components-28%2B-orange?style=flat-square)
-![Docs](https://img.shields.io/badge/docs-20%2B-yellow?style=flat-square)
+![Docs](https://img.shields.io/badge/docs-21%2B-yellow?style=flat-square)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.7%2B-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-15.1-000?style=flat-square&logo=nextdotjs)
 ![Prisma](https://img.shields.io/badge/Prisma-30%2B%20models-2D3748?style=flat-square&logo=prisma)
@@ -420,6 +420,7 @@ sovereign-assets-platform/
 | [DIGau Execution Plan](docs/trade-desk/DIGAU_EXECUTION_PLAN.md) | 8-week remediation plan, pricing, 22 deliverables | $105K build → $15K/mo → $470K–$495K Year 1 |
 | [On-Chain Contract Teardown](docs/competitive-intelligence/ONCHAIN_CONTRACT_TEARDOWN.md) | Source-level analysis of DIGau proxy + MPRA + MPRD contracts | 0/12 compliance controls, unlimited mint, unaudited proxy, 9 holders |
 | [Live Teardown](docs/competitive-intelligence/MPRA_DIGAU_LIVE_TEARDOWN.md) | CatEx data, wallet analysis, operator intel | 4 holders, $777M synthetic price, zero bids |
+| [MPRA Ecosystem Teardown](docs/competitive-intelligence/MPRA_ECOSYSTEM_TEARDOWN.md) | Full mayapreferred.io site audit — 6 tokens, 3 mines, entity + team analysis | 10 CRITICAL red flags, $924M fantasy, virtual offices, 23 total red flags |
 
 ---
 
@@ -463,6 +464,7 @@ sovereign-assets-platform/
 | DIGau Institutional Gap Memo | [`docs/competitive-intelligence/DIGAU_INSTITUTIONAL_GAP_MEMO.md`](docs/competitive-intelligence/DIGAU_INSTITUTIONAL_GAP_MEMO.md) |
 | On-Chain Contract Teardown | [`docs/competitive-intelligence/ONCHAIN_CONTRACT_TEARDOWN.md`](docs/competitive-intelligence/ONCHAIN_CONTRACT_TEARDOWN.md) |
 | MPRA/DIGau Live Teardown | [`docs/competitive-intelligence/MPRA_DIGAU_LIVE_TEARDOWN.md`](docs/competitive-intelligence/MPRA_DIGAU_LIVE_TEARDOWN.md) |
+| MPRA Ecosystem Teardown | [`docs/competitive-intelligence/MPRA_ECOSYSTEM_TEARDOWN.md`](docs/competitive-intelligence/MPRA_ECOSYSTEM_TEARDOWN.md) |
 
 ---
 
