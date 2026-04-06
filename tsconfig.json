@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "incremental": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@sov/shared-types": ["./packages/shared-types/src"],
+      "@sov/ui": ["./packages/ui/src"],
+      "@sov/db": ["./packages/db/src"],
+      "@sov/auth": ["./packages/auth/src"],
+      "@sov/compliance-engine": ["./packages/compliance-engine/src"],
+      "@sov/token-engine": ["./packages/token-engine/src"],
+      "@sov/reserve-registry": ["./packages/reserve-registry/src"],
+      "@sov/attestation": ["./packages/attestation/src"],
+      "@sov/market-ops": ["./packages/market-ops/src"],
+      "@sov/exchange-adapters": ["./packages/exchange-adapters/src"],
+      "@sov/treasury": ["./packages/treasury/src"],
+      "@sov/analytics": ["./packages/analytics/src"],
+      "@sov/audit": ["./packages/audit/src"],
+      "@sov/documents": ["./packages/documents/src"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".next"]
+}

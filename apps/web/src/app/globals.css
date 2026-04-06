@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 3.5%;
+    --foreground: 240 5% 96%;
+    --card: 240 4% 7%;
+    --card-foreground: 240 5% 96%;
+    --border: 240 5% 14%;
+    --gold: 39 90% 42%;
+    --gold-foreground: 39 50% 88%;
+  }
+
+  * {
+    @apply border-obsidian-700;
+  }
+
+  body {
+    @apply bg-obsidian-950 text-obsidian-50 font-body antialiased;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-obsidian-900;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-obsidian-600 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-obsidian-500;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-obsidian-850/80 backdrop-blur-xl border border-obsidian-700/50 rounded-xl shadow-glass;
+  }
+
+  .gold-gradient {
+    @apply bg-gradient-to-r from-gold-600 via-gold-400 to-gold-600;
+  }
+
+  .gold-text {
+    @apply bg-gradient-to-r from-gold-400 via-gold-300 to-gold-400 bg-clip-text text-transparent;
+  }
+
+  .section-heading {
+    @apply text-sm font-semibold uppercase tracking-caps text-obsidian-300;
+  }
+
+  .stat-value {
+    @apply text-3xl font-bold tabular-nums tracking-tight;
+  }
+
+  .stat-label {
+    @apply text-sm text-obsidian-300 mt-1;
+  }
+}

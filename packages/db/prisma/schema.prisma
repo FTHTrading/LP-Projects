@@ -1,0 +1,702 @@
+// Sovereign Assets Platform — Prisma Schema
+// Domain: Asset-backed token issuer operating system
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── AUTH & ROLES ────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  COMPLIANCE_OFFICER
+  TREASURY_OFFICER
+  MARKET_OPS
+  INVESTOR_RELATIONS
+  INVESTOR
+  MARKET_MAKER
+  AUDITOR
+  PUBLIC
+}
+
+enum KycStatus {
+  NOT_STARTED
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum AccreditationStatus {
+  NOT_REQUIRED
+  PENDING
+  VERIFIED
+  EXPIRED
+  REJECTED
+}
+
+model User {
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  name               String?
+  role               UserRole            @default(PUBLIC)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  investorProfile    InvestorProfile?
+  auditEventsActed   AuditEvent[]        @relation("actor")
+  adminActions       AdminAction[]
+  sessions           Session[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── INVESTOR ────────────────────────────────────────────
+
+enum InvestorType {
+  INDIVIDUAL
+  ENTITY
+  TRUST
+  FUND
+}
+
+model InvestorProfile {
+  id                    String              @id @default(cuid())
+  userId                String              @unique
+  user                  User                @relation(fields: [userId], references: [id])
+
+  investorType          InvestorType        @default(INDIVIDUAL)
+  entityName            String?
+  countryCode           String              // ISO 3166-1 alpha-2
+  stateOrProvince       String?
+
+  kycStatus             KycStatus           @default(NOT_STARTED)
+  kycProvider           String?
+  kycExternalId         String?
+  kycApprovedAt         DateTime?
+  kycExpiresAt          DateTime?
+
+  accreditationStatus   AccreditationStatus @default(NOT_REQUIRED)
+  accreditationMethod   String?
+  accreditationVerifiedAt DateTime?
+  accreditationExpiresAt  DateTime?
+
+  walletAddress         String?             @unique
+  whitelisted           Boolean             @default(false)
+  whitelistedAt         DateTime?
+
+  onboardingComplete    Boolean             @default(false)
+  onboardingCompletedAt DateTime?
+
+  subscriptionAgreed    Boolean             @default(false)
+  subscriptionAgreedAt  DateTime?
+  riskDisclosureAccepted Boolean            @default(false)
+
+  holdings              Holding[]
+  transactions          Transaction[]
+  redemptionRequests    RedemptionRequest[]
+  documents             InvestorDocument[]
+
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([countryCode])
+  @@index([kycStatus])
+  @@index([walletAddress])
+}
+
+// ─── TOKEN CLASSES ───────────────────────────────────────
+
+enum TokenStatus {
+  ACTIVE
+  PAUSED
+  HALTED
+  MIGRATING
+  RETIRED
+}
+
+enum TokenClassification {
+  SECURITY_TOKEN
+  UTILITY_TOKEN
+  RWA_TOKEN
+  STABLE_TOKEN
+  PREFERRED
+  COMMON
+}
+
+model TokenClass {
+  id                    String              @id @default(cuid())
+  symbol                String              @unique
+  name                  String
+  classification        TokenClassification
+  status                TokenStatus         @default(ACTIVE)
+  description           String
+
+  contractAddress       String?
+  chainId               Int?
+  decimals              Int                 @default(18)
+  standard              String?             // "ERC-20", "ERC-3643", etc.
+
+  totalSupply           Decimal             @default(0) @db.Decimal(36, 18)
+  circulatingSupply     Decimal             @default(0) @db.Decimal(36, 18)
+  treasuryHeld          Decimal             @default(0) @db.Decimal(36, 18)
+
+  backingAssetClass     String?             // "gold", "silver", "mixed"
+  backingDescription    String?
+
+  transferRestrictions  TransferRestriction[]
+  holdings              Holding[]
+  transactions          Transaction[]
+  reserveLinks          ReserveTokenLink[]
+  liquiditySnapshots    LiquiditySnapshot[]
+  spreadPolicies        SpreadPolicy[]
+
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+}
+
+// ─── HOLDINGS & TRANSACTIONS ─────────────────────────────
+
+model Holding {
+  id           String          @id @default(cuid())
+  investorId   String
+  investor     InvestorProfile @relation(fields: [investorId], references: [id])
+  tokenId      String
+  token        TokenClass      @relation(fields: [tokenId], references: [id])
+  balance      Decimal         @db.Decimal(36, 18)
+  lockedAmount Decimal         @default(0) @db.Decimal(36, 18)
+  lockExpiry   DateTime?
+  updatedAt    DateTime        @updatedAt
+
+  @@unique([investorId, tokenId])
+  @@index([tokenId])
+}
+
+enum TransactionType {
+  MINT
+  BURN
+  TRANSFER
+  FREEZE
+  UNFREEZE
+  SEIZE
+  REDEMPTION
+  SUBSCRIPTION
+}
+
+model Transaction {
+  id            String          @id @default(cuid())
+  tokenId       String
+  token         TokenClass      @relation(fields: [tokenId], references: [id])
+  type          TransactionType
+  fromAddress   String?
+  toAddress     String?
+  investorId    String?
+  investor      InvestorProfile? @relation(fields: [investorId], references: [id])
+  amount        Decimal         @db.Decimal(36, 18)
+  txHash        String?         // on-chain tx hash
+  blockNumber   Int?
+  status        String          @default("pending") // pending, confirmed, failed, reverted
+  metadata      Json?
+  createdAt     DateTime        @default(now())
+
+  @@index([tokenId])
+  @@index([investorId])
+  @@index([txHash])
+  @@index([createdAt])
+}
+
+// ─── COMPLIANCE ──────────────────────────────────────────
+
+model TransferRestriction {
+  id              String    @id @default(cuid())
+  tokenId         String
+  token           TokenClass @relation(fields: [tokenId], references: [id])
+  ruleType        String    // "jurisdiction_block", "investor_class", "lockup", "max_holding", "transfer_count"
+  countryCode     String?
+  investorType    String?
+  maxHolding      Decimal?  @db.Decimal(36, 18)
+  lockupDays      Int?
+  description     String
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  createdBy       String
+
+  @@index([tokenId])
+  @@index([countryCode])
+}
+
+model WhitelistEntry {
+  id           String   @id @default(cuid())
+  address      String
+  tokenId      String
+  investorId   String?
+  countryCode  String
+  addedBy      String
+  addedAt      DateTime @default(now())
+  removedAt    DateTime?
+  active       Boolean  @default(true)
+
+  @@unique([address, tokenId])
+  @@index([tokenId])
+}
+
+// ─── RESERVES & ATTESTATION ──────────────────────────────
+
+enum AssetClass {
+  GOLD
+  SILVER
+  PLATINUM
+  REAL_ESTATE
+  COMMODITY
+  CASH
+  TREASURY_BILL
+  OTHER
+}
+
+enum AttestationLevel {
+  ATTESTED
+  SELF_REPORTED
+  UNVERIFIED
+}
+
+model ReserveAsset {
+  id                    String           @id @default(cuid())
+  name                  String
+  assetClass            AssetClass
+  description           String
+  location              String?
+  custodian             String?
+  custodianVerified     Boolean          @default(false)
+
+  acquisitionDate       DateTime?
+  acquisitionCost       Decimal?         @db.Decimal(36, 6)
+  acquisitionCurrency   String?
+
+  lastValuationDate     DateTime?
+  lastValuationAmount   Decimal?         @db.Decimal(36, 6)
+  valuationCurrency     String           @default("USD")
+  valuationMethodology  String?
+
+  attestationLevel      AttestationLevel @default(UNVERIFIED)
+
+  weight                Decimal?         @db.Decimal(20, 6) // for precious metals (troy oz)
+  purity                Decimal?         @db.Decimal(8, 6)  // e.g., 0.9999
+
+  documents             ReserveDocument[]
+  timeline              ReserveStatusEvent[]
+  tokenLinks            ReserveTokenLink[]
+
+  active                Boolean          @default(true)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  @@index([assetClass])
+  @@index([attestationLevel])
+}
+
+model ReserveTokenLink {
+  id           String       @id @default(cuid())
+  reserveId    String
+  reserve      ReserveAsset @relation(fields: [reserveId], references: [id])
+  tokenId      String
+  token        TokenClass   @relation(fields: [tokenId], references: [id])
+  allocationPct Decimal     @db.Decimal(8, 4) // % of this reserve backing this token
+
+  @@unique([reserveId, tokenId])
+}
+
+enum DocumentType {
+  ASSAY_REPORT
+  TITLE_DEED
+  CUSTODY_RECEIPT
+  AUDIT_REPORT
+  VALUATION_REPORT
+  INSURANCE_CERT
+  LEGAL_OPINION
+  PPM
+  SUBSCRIPTION_AGREEMENT
+  BOARD_RESOLUTION
+  RISK_DISCLOSURE
+  OTHER
+}
+
+enum DocumentIssuerType {
+  THIRD_PARTY_AUDITOR
+  GOVERNMENT
+  CUSTODIAN
+  ISSUER_SELF
+  LEGAL_COUNSEL
+  REGULATOR
+}
+
+model ReserveDocument {
+  id                String            @id @default(cuid())
+  reserveAssetId    String?
+  reserveAsset      ReserveAsset?     @relation(fields: [reserveAssetId], references: [id])
+  type              DocumentType
+  title             String
+  description       String?
+  issuer            String            // who produced it
+  issuerType        DocumentIssuerType
+  date              DateTime
+  expirationDate    DateTime?
+
+  fileHash          String            // SHA-256
+  fileSize          Int
+  mimeType          String
+  storageKey        String            // S3 key or path
+
+  chainAnchorChain  String?           // "ethereum", "polygon"
+  chainAnchorTx     String?           // tx hash
+  chainAnchorBlock  Int?
+
+  verified          Boolean           @default(false)
+  verifiedBy        String?
+  verifiedAt        DateTime?
+
+  published         Boolean           @default(false)
+  publishedAt       DateTime?
+
+  supersededById    String?           @unique
+  supersededBy      ReserveDocument?  @relation("supersedes", fields: [supersededById], references: [id])
+  supersedes        ReserveDocument?  @relation("supersedes")
+
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([type])
+  @@index([reserveAssetId])
+  @@index([published])
+}
+
+model ReserveStatusEvent {
+  id             String       @id @default(cuid())
+  reserveAssetId String
+  reserveAsset   ReserveAsset @relation(fields: [reserveAssetId], references: [id])
+  eventType      String       // "acquired", "valued", "attested", "encumbered", "released"
+  description    String
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  createdBy      String
+
+  @@index([reserveAssetId])
+  @@index([createdAt])
+}
+
+// ─── NAV ─────────────────────────────────────────────────
+
+model NavSnapshot {
+  id                    String   @id @default(cuid())
+  timestamp             DateTime @default(now())
+  totalReserveValue     Decimal  @db.Decimal(36, 6)
+  totalLiabilities      Decimal  @db.Decimal(36, 6)
+  netReserveValue       Decimal  @db.Decimal(36, 6)
+  tokenSupply           Decimal  @db.Decimal(36, 18)
+  navPerToken           Decimal  @db.Decimal(36, 6)
+  backingRatio          Decimal  @db.Decimal(12, 6)
+  methodology           String
+  sources               Json     // array of data sources
+
+  @@index([timestamp])
+}
+
+// ─── LIQUIDITY & MARKET OPS ──────────────────────────────
+
+enum VenueType {
+  CEX
+  DEX
+  OTC
+  INTERNAL
+}
+
+enum VenueStatus {
+  ACTIVE
+  SUSPENDED
+  PROBATION
+  DENIED
+}
+
+model Venue {
+  id                String       @id @default(cuid())
+  name              String       @unique
+  type              VenueType
+  status            VenueStatus  @default(ACTIVE)
+  adapterModule     String       // exchange adapter identifier
+  complianceFlags   String[]     // e.g., ["regulated_us", "no_us_persons"]
+  maxDailyVolume    Decimal?     @db.Decimal(36, 6)
+  healthCheckUrl    String?
+  lastHealthCheck   DateTime?
+  lastHealthStatus  Boolean?
+  config            Json?
+
+  liquiditySnapshots LiquiditySnapshot[]
+  anomalyEvents      AnomalyEvent[]
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model LiquiditySnapshot {
+  id              String    @id @default(cuid())
+  tokenId         String
+  token           TokenClass @relation(fields: [tokenId], references: [id])
+  venueId         String
+  venue           Venue     @relation(fields: [venueId], references: [id])
+  timestamp       DateTime  @default(now())
+
+  bestBid         Decimal?  @db.Decimal(36, 6)
+  bestAsk         Decimal?  @db.Decimal(36, 6)
+  spreadBps       Decimal?  @db.Decimal(12, 2)
+  bidDepth        Decimal?  @db.Decimal(36, 6) // total bid liquidity
+  askDepth        Decimal?  @db.Decimal(36, 6) // total ask liquidity
+  volume24h       Decimal?  @db.Decimal(36, 6)
+  vwap24h         Decimal?  @db.Decimal(36, 6)
+  inventoryLevel  Decimal?  @db.Decimal(36, 18) // our tokens on this venue
+  qualityScore    Decimal?  @db.Decimal(5, 2) // 0-100 venue quality
+
+  source          String    // "adapter", "manual", "aggregator"
+
+  @@index([tokenId, venueId])
+  @@index([timestamp])
+}
+
+model SpreadPolicy {
+  id                    String    @id @default(cuid())
+  tokenId               String
+  token                 TokenClass @relation(fields: [tokenId], references: [id])
+  venueId               String?   // null = default for all venues
+  baseSpreadBps         Int
+  minSpreadBps          Int
+  maxSpreadBps          Int
+  volatilityAdjustment  Boolean   @default(false)
+  inventorySkew         Boolean   @default(false)
+  navDeviationThreshold Decimal?  @db.Decimal(8, 4)
+  active                Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([tokenId])
+}
+
+enum AnomalySeverity {
+  INFO
+  WARNING
+  HIGH
+  CRITICAL
+}
+
+model AnomalyEvent {
+  id            String          @id @default(cuid())
+  venueId       String
+  venue         Venue           @relation(fields: [venueId], references: [id])
+  tokenSymbol   String
+  anomalyType   String          // "price_deviation", "volume_spike", "wash_trading", "stale_quote", "spoofing"
+  severity      AnomalySeverity
+  description   String
+  dataPoints    Json            // anomaly evidence
+  acknowledged  Boolean         @default(false)
+  acknowledgedBy String?
+  resolvedAt    DateTime?
+  createdAt     DateTime        @default(now())
+
+  @@index([venueId])
+  @@index([severity])
+  @@index([createdAt])
+}
+
+// ─── TREASURY ────────────────────────────────────────────
+
+enum LedgerType {
+  FIAT
+  STABLECOIN
+  TOKEN
+  CRYPTO
+}
+
+model TreasuryAccount {
+  id            String     @id @default(cuid())
+  name          String
+  ledgerType    LedgerType
+  currency      String     // "USD", "USDC", "ETH", token symbol
+  balance       Decimal    @db.Decimal(36, 6)
+  custodian     String?
+  walletAddress String?
+  description   String?
+  active        Boolean    @default(true)
+  updatedAt     DateTime   @updatedAt
+
+  movements     TreasuryMovement[]
+}
+
+model TreasuryMovement {
+  id          String          @id @default(cuid())
+  accountId   String
+  account     TreasuryAccount @relation(fields: [accountId], references: [id])
+  type        String          // "deposit", "withdrawal", "transfer", "settlement", "fee"
+  amount      Decimal         @db.Decimal(36, 6)
+  direction   String          // "inflow", "outflow"
+  counterparty String?
+  reference   String?
+  txHash      String?
+  status      String          @default("pending") // pending, settled, failed
+  approvedBy  String?
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+
+  @@index([accountId])
+  @@index([createdAt])
+}
+
+// ─── REDEMPTION ──────────────────────────────────────────
+
+enum RedemptionStatus {
+  REQUESTED
+  PENDING_COMPLIANCE
+  APPROVED
+  PROCESSING
+  SETTLED
+  REJECTED
+  CANCELLED
+}
+
+model RedemptionRequest {
+  id           String           @id @default(cuid())
+  investorId   String
+  investor     InvestorProfile  @relation(fields: [investorId], references: [id])
+  tokenSymbol  String
+  amount       Decimal          @db.Decimal(36, 18)
+  navAtRequest Decimal?         @db.Decimal(36, 6)
+  navAtSettle  Decimal?         @db.Decimal(36, 6)
+  status       RedemptionStatus @default(REQUESTED)
+  settlementMethod String?      // "wire", "stablecoin", "crypto"
+  settlementRef    String?
+  rejectionReason  String?
+  requestedAt  DateTime         @default(now())
+  approvedAt   DateTime?
+  settledAt    DateTime?
+  approvedBy   String?
+
+  @@index([investorId])
+  @@index([status])
+  @@index([requestedAt])
+}
+
+// ─── INVESTOR DOCUMENTS ──────────────────────────────────
+
+model InvestorDocument {
+  id           String          @id @default(cuid())
+  investorId   String
+  investor     InvestorProfile @relation(fields: [investorId], references: [id])
+  type         String          // "subscription_agreement", "kyc_doc", "accreditation_letter", "tax_form"
+  title        String
+  storageKey   String
+  fileHash     String
+  status       String          @default("pending") // pending, accepted, rejected
+  uploadedAt   DateTime        @default(now())
+
+  @@index([investorId])
+}
+
+// ─── AUDIT LOG ───────────────────────────────────────────
+
+model AuditEvent {
+  id            String   @id @default(cuid())
+  timestamp     DateTime @default(now())
+  eventType     String   // e.g., "token.minted", "compliance.transfer_blocked"
+  actorId       String?
+  actor         User?    @relation("actor", fields: [actorId], references: [id])
+  actorRole     String?
+  targetType    String?  // e.g., "token", "investor", "reserve"
+  targetId      String?
+  action        String
+  details       Json?
+  previousState Json?
+  newState      Json?
+  ipAddress     String?
+  eventHash     String   // SHA-256 for tamper detection
+  prevEventHash String?  // chain link
+
+  @@index([eventType])
+  @@index([actorId])
+  @@index([targetType, targetId])
+  @@index([timestamp])
+}
+
+// ─── ADMIN ACTIONS (APPROVAL WORKFLOW) ───────────────────
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+model AdminAction {
+  id            String         @id @default(cuid())
+  actionType    String         // "mint", "burn", "freeze", "seize", "whitelist_add", etc.
+  requestedBy   String
+  requester     User           @relation(fields: [requestedBy], references: [id])
+  targetType    String
+  targetId      String
+  payload       Json
+  status        ApprovalStatus @default(PENDING)
+  requiredApprovals Int        @default(1)
+  approvals     AdminApproval[]
+  expiresAt     DateTime?
+  executedAt    DateTime?
+  createdAt     DateTime       @default(now())
+
+  @@index([status])
+  @@index([actionType])
+  @@index([createdAt])
+}
+
+model AdminApproval {
+  id          String      @id @default(cuid())
+  actionId    String
+  action      AdminAction @relation(fields: [actionId], references: [id])
+  approverId  String
+  approverRole String
+  decision    String      // "approved", "rejected"
+  reason      String?
+  createdAt   DateTime    @default(now())
+
+  @@unique([actionId, approverId])
+}
+
+// ─── GOVERNANCE DOCUMENTS ────────────────────────────────
+
+model GovernanceDocument {
+  id             String   @id @default(cuid())
+  type           String   // "board_resolution", "ppm", "opinion_letter", "audit_report", "risk_factors"
+  title          String
+  version        Int      @default(1)
+  description    String?
+  storageKey     String
+  fileHash       String
+  published      Boolean  @default(false)
+  publishedAt    DateTime?
+  effectiveDate  DateTime?
+  supersededById String?
+  createdBy      String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([type])
+  @@index([published])
+}
