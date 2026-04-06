@@ -416,6 +416,8 @@ sovereign-assets-platform/
 | [MPRA Deep Dive](docs/competitive-intelligence/MPRA_DEEP_DIVE.md) | Maya Preferred 223 — entity, strengths, failures, 10-week fix | Not a failed project — an unfunded infrastructure project with funded people |
 | [DIGau Deep Dive](docs/competitive-intelligence/DIGAU_DEEP_DIVE.md) | Dignity Gold — entity, BD, gold backing, 8-week fix | Actually the easier fix — no wallet migration, gold has LBMA price |
 | [Institutional Gap Analysis](docs/competitive-intelligence/INSTITUTIONAL_GAP_ANALYSIS.md) | 10-layer comparison vs HSBC/Goldman | It's not about the asset — it's about the infrastructure |
+| [DIGau Institutional Gap Memo](docs/competitive-intelligence/DIGAU_INSTITUTIONAL_GAP_MEMO.md) | Live site audit, 10-layer gap assessment, $6B claim analysis | 5 CRITICAL, 5 HIGH gaps — every gap is our product |
+| [DIGau Execution Plan](docs/trade-desk/DIGAU_EXECUTION_PLAN.md) | 8-week remediation plan, pricing, 22 deliverables | $105K build → $15K/mo → $470K–$495K Year 1 |
 | [Live Teardown](docs/competitive-intelligence/MPRA_DIGAU_LIVE_TEARDOWN.md) | CatEx data, wallet analysis, operator intel | 4 holders, $777M synthetic price, zero bids |
 
 ---
@@ -448,6 +450,7 @@ sovereign-assets-platform/
 |----------|------|
 | Trade Desk Onboarding (8-Gate) | [`docs/trade-desk/TRADE_DESK_ONBOARDING.md`](docs/trade-desk/TRADE_DESK_ONBOARDING.md) |
 | Issuer Onboarding & Funding Pathway | [`docs/trade-desk/ISSUER_ONBOARDING_FUNDING_PATHWAY.md`](docs/trade-desk/ISSUER_ONBOARDING_FUNDING_PATHWAY.md) |
+| DIGau Execution Plan | [`docs/trade-desk/DIGAU_EXECUTION_PLAN.md`](docs/trade-desk/DIGAU_EXECUTION_PLAN.md) |
 
 ### Competitive Intelligence
 
@@ -456,6 +459,7 @@ sovereign-assets-platform/
 | MPRA Deep Dive | [`docs/competitive-intelligence/MPRA_DEEP_DIVE.md`](docs/competitive-intelligence/MPRA_DEEP_DIVE.md) |
 | DIGau Deep Dive | [`docs/competitive-intelligence/DIGAU_DEEP_DIVE.md`](docs/competitive-intelligence/DIGAU_DEEP_DIVE.md) |
 | Institutional Gap Analysis | [`docs/competitive-intelligence/INSTITUTIONAL_GAP_ANALYSIS.md`](docs/competitive-intelligence/INSTITUTIONAL_GAP_ANALYSIS.md) |
+| DIGau Institutional Gap Memo | [`docs/competitive-intelligence/DIGAU_INSTITUTIONAL_GAP_MEMO.md`](docs/competitive-intelligence/DIGAU_INSTITUTIONAL_GAP_MEMO.md) |
 | MPRA/DIGau Live Teardown | [`docs/competitive-intelligence/MPRA_DIGAU_LIVE_TEARDOWN.md`](docs/competitive-intelligence/MPRA_DIGAU_LIVE_TEARDOWN.md) |
 
 ---
