@@ -8,7 +8,7 @@
 ![Routes](https://img.shields.io/badge/routes-59-blue?style=flat-square)
 ![Packages](https://img.shields.io/badge/packages-15-blueviolet?style=flat-square)
 ![Components](https://img.shields.io/badge/components-28%2B-orange?style=flat-square)
-![Docs](https://img.shields.io/badge/docs-18%2B-yellow?style=flat-square)
+![Docs](https://img.shields.io/badge/docs-20%2B-yellow?style=flat-square)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.7%2B-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-15.1-000?style=flat-square&logo=nextdotjs)
 ![Prisma](https://img.shields.io/badge/Prisma-30%2B%20models-2D3748?style=flat-square&logo=prisma)
@@ -418,6 +418,7 @@ sovereign-assets-platform/
 | [Institutional Gap Analysis](docs/competitive-intelligence/INSTITUTIONAL_GAP_ANALYSIS.md) | 10-layer comparison vs HSBC/Goldman | It's not about the asset — it's about the infrastructure |
 | [DIGau Institutional Gap Memo](docs/competitive-intelligence/DIGAU_INSTITUTIONAL_GAP_MEMO.md) | Live site audit, 10-layer gap assessment, $6B claim analysis | 5 CRITICAL, 5 HIGH gaps — every gap is our product |
 | [DIGau Execution Plan](docs/trade-desk/DIGAU_EXECUTION_PLAN.md) | 8-week remediation plan, pricing, 22 deliverables | $105K build → $15K/mo → $470K–$495K Year 1 |
+| [On-Chain Contract Teardown](docs/competitive-intelligence/ONCHAIN_CONTRACT_TEARDOWN.md) | Source-level analysis of DIGau proxy + MPRA + MPRD contracts | 0/12 compliance controls, unlimited mint, unaudited proxy, 9 holders |
 | [Live Teardown](docs/competitive-intelligence/MPRA_DIGAU_LIVE_TEARDOWN.md) | CatEx data, wallet analysis, operator intel | 4 holders, $777M synthetic price, zero bids |
 
 ---
@@ -460,6 +461,7 @@ sovereign-assets-platform/
 | DIGau Deep Dive | [`docs/competitive-intelligence/DIGAU_DEEP_DIVE.md`](docs/competitive-intelligence/DIGAU_DEEP_DIVE.md) |
 | Institutional Gap Analysis | [`docs/competitive-intelligence/INSTITUTIONAL_GAP_ANALYSIS.md`](docs/competitive-intelligence/INSTITUTIONAL_GAP_ANALYSIS.md) |
 | DIGau Institutional Gap Memo | [`docs/competitive-intelligence/DIGAU_INSTITUTIONAL_GAP_MEMO.md`](docs/competitive-intelligence/DIGAU_INSTITUTIONAL_GAP_MEMO.md) |
+| On-Chain Contract Teardown | [`docs/competitive-intelligence/ONCHAIN_CONTRACT_TEARDOWN.md`](docs/competitive-intelligence/ONCHAIN_CONTRACT_TEARDOWN.md) |
 | MPRA/DIGau Live Teardown | [`docs/competitive-intelligence/MPRA_DIGAU_LIVE_TEARDOWN.md`](docs/competitive-intelligence/MPRA_DIGAU_LIVE_TEARDOWN.md) |
 
 ---
