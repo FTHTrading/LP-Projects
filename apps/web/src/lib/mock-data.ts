@@ -84,6 +84,7 @@ export const mockNavHistory: NavSnapshot[] = Array.from({ length: 30 }, (_, i) =
   const noise = (Math.sin(i * 0.5) * 0.3) + (Math.random() * 0.4 - 0.2);
   const nav = base + noise + (i * 0.01);
   return {
+    id: `nav-${i}`,
     timestamp: date.toISOString(),
     totalReserveValue: (nav * 10000000).toFixed(2),
     totalLiabilities: '12500000.00',
@@ -91,6 +92,7 @@ export const mockNavHistory: NavSnapshot[] = Array.from({ length: 30 }, (_, i) =
     tokenSupply: '10000000',
     navPerToken: nav.toFixed(4),
     backingRatio: (1.02 + Math.random() * 0.04).toFixed(4),
+    methodology: 'mark_to_market',
   };
 });
 

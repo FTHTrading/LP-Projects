@@ -1,7 +1,7 @@
 // Exchange Adapters — venue connectivity, order book polling, trade execution
 // Stub: define adapter interface + implement per-venue adapters
 
-import type { LiquiditySnapshot, Venue } from '@sov/shared-types';
+import type { LiquiditySnapshot } from '@sov/shared-types';
 
 export interface ExchangeAdapter {
   venueId: string;

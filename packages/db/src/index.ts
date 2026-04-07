@@ -1,12 +1,22 @@
-// DB — Prisma client re-export
-// After `prisma generate`, this re-exports the generated client
+// DB — Prisma client re-export and singleton
+// Canonical PrismaClient for the entire monorepo.
+// All packages MUST import `prisma` from `@sov/db`, never instantiate their own client.
 
-// export { PrismaClient } from '@prisma/client';
-// export * from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
-// Singleton pattern for Next.js hot-reload
-// const globalForPrisma = global as unknown as { prisma: any };
-// export const prisma = globalForPrisma.prisma ?? new PrismaClient();
-// if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+// Re-export types so other packages can use Prisma types without
+// a direct @prisma/client dependency.
+export * from '@prisma/client';
 
-export {};
+// Singleton pattern: prevents multiple PrismaClient instances during Next.js
+// hot-module reloading in development. In production a single instance is used.
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+
+export const prisma: PrismaClient =
+  globalForPrisma.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+}
+
+export default prisma;

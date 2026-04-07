@@ -85,6 +85,8 @@ export interface ReserveSummary {
 }
 
 export interface NavSnapshot {
+  id: string;
+  tokenId?: string;
   timestamp: string;
   totalReserveValue: string;
   totalLiabilities: string;
@@ -92,6 +94,7 @@ export interface NavSnapshot {
   tokenSupply: string;
   navPerToken: string;
   backingRatio: string;
+  methodology: string;
 }
 
 // ─── ATTESTATION ─────────────────────────────────────────
@@ -193,6 +196,7 @@ export interface TransferCheckResult {
 }
 
 export interface JurisdictionPolicy {
+  id: string;
   countryCode: string;
   countryName: string;
   status: 'allowed' | 'restricted' | 'blocked';
@@ -516,3 +520,180 @@ export interface IssuerApplication {
   assessedAt?: string;
   activatedAt?: string;
 }
+
+// ─── ISSUER PROFILE ──────────────────────────────────────
+
+export interface IssuerProfile {
+  id: string;
+  entityName: string;
+  entityType: EntityType;
+  jurisdiction: string;
+  regulatoryStatus: RegulatoryStatus;
+  stage: IssuerStage;
+  primaryContactName: string;
+  primaryContactEmail: string;
+  primaryContactRole: string;
+  bdName?: string;
+  bdFinraId?: string;
+  bdRelationshipStatus?: string;
+  qualificationScore: number;
+  qualificationStatus: string;
+  activatedAt?: string;
+  createdAt: string;
+}
+
+export interface IssuerTokenLink {
+  id: string;
+  issuerId: string;
+  tokenId: string;
+  role: string;
+  linkedAt: string;
+}
+
+// ─── MARKET MAKER ────────────────────────────────────────
+
+export type MarketMakerStatus = 'onboarding' | 'active' | 'suspended' | 'terminated';
+
+export interface MarketMaker {
+  id: string;
+  name: string;
+  entityName: string;
+  status: MarketMakerStatus;
+  venueId?: string;
+  walletAddresses: string[];
+  minBidDepthUsd: string;
+  minAskDepthUsd: string;
+  maxSpreadBps: number;
+  uptimeRequirementPct: number;
+  quoteResponseSecs: number;
+  onboardedAt?: string;
+  createdAt: string;
+}
+
+// ─── OTC DESK / RFQ ──────────────────────────────────────
+
+export type OtcRfqStatus =
+  | 'submitted'
+  | 'quoted'
+  | 'accepted'
+  | 'rejected'
+  | 'expired'
+  | 'executed'
+  | 'cancelled';
+
+export type OtcDirection = 'buy' | 'sell';
+
+export interface OtcRfq {
+  id: string;
+  investorId: string;
+  tokenSymbol: string;
+  direction: OtcDirection;
+  requestedAmount: string;
+  settlementCurrency: string;
+  status: OtcRfqStatus;
+  submittedAt: string;
+  quoteExpiresAt?: string;
+  executedAt?: string;
+  notes?: string;
+}
+
+export interface OtcQuote {
+  id: string;
+  rfqId: string;
+  navAtQuote: string;
+  spreadBps: number;
+  quotedPrice: string;
+  totalAmount: string;
+  expiresAt: string;
+  acceptedAt?: string;
+  rejectedAt?: string;
+  createdAt: string;
+}
+
+export interface OtcTrade {
+  id: string;
+  rfqId: string;
+  quoteId: string;
+  settledPrice: string;
+  settledAmount: string;
+  settlementValue: string;
+  settlementTxHash?: string;
+  approvedBy?: string;
+  settledAt: string;
+}
+
+// ─── MIGRATION ───────────────────────────────────────────
+
+export type MigrationBatchStatus =
+  | 'draft'
+  | 'snapshot_complete'
+  | 'screening_complete'
+  | 'eligible_minted'
+  | 'complete'
+  | 'cancelled';
+
+export type MigrationHolderStatus =
+  | 'pending_kyc'
+  | 'kyc_submitted'
+  | 'eligible'
+  | 'ineligible'
+  | 'deferred'
+  | 'minted'
+  | 'claimed'
+  | 'appeal_submitted'
+  | 'appeal_approved'
+  | 'appeal_rejected';
+
+export interface MigrationBatch {
+  id: string;
+  name: string;
+  legacyTokenSymbol: string;
+  legacyContractAddress: string;
+  legacyChainId: number;
+  targetTokenSymbol: string;
+  status: MigrationBatchStatus;
+  snapshotBlockNumber?: number;
+  snapshotTimestamp?: string;
+  totalHolders: number;
+  eligibleHolders: number;
+  ineligibleHolders: number;
+  deferredHolders: number;
+  kycWindowOpensAt?: string;
+  kycWindowClosesAt?: string;
+  completedAt?: string;
+  createdAt: string;
+}
+
+export interface MigrationHolder {
+  id: string;
+  batchId: string;
+  legacyAddress: string;
+  legacyBalance: string;
+  snapshotBlock: number;
+  snapshotTimestamp: string;
+  investorId?: string;
+  kycStatus: KycStatus;
+  countryCode?: string;
+  status: MigrationHolderStatus;
+  ineligibleReason?: string;
+  deferredReason?: string;
+  newAddress?: string;
+  mintedAmount?: string;
+  mintTxHash?: string;
+  mintedAt?: string;
+  createdAt: string;
+}
+
+export interface MigrationSummary {
+  batchId: string;
+  legacyTokenSymbol: string;
+  targetTokenSymbol: string;
+  status: MigrationBatchStatus;
+  progressPct: number;
+  eligibilityPct: number;
+  kycCompletionPct: number;
+}
+
+// ─── JURISDICTION POLICY ─────────────────────────────────
+
+export type JurisdictionPolicyStatus = 'allowed' | 'restricted' | 'blocked';

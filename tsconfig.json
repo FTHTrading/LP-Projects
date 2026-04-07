@@ -31,7 +31,9 @@
       "@sov/treasury": ["./packages/treasury/src"],
       "@sov/analytics": ["./packages/analytics/src"],
       "@sov/audit": ["./packages/audit/src"],
-      "@sov/documents": ["./packages/documents/src"]
+      "@sov/documents": ["./packages/documents/src"],
+      "@sov/config": ["./packages/config/src"],
+      "@sov/migration-engine": ["./packages/migration-engine/src"]
     }
   },
   "exclude": ["node_modules", "dist", ".next"]

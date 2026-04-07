@@ -1,12 +1,11 @@
 {
-  "name": "@sov/token-engine",
+  "name": "@sov/migration-engine",
   "version": "0.0.1",
   "private": true,
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
     "@sov/shared-types": "workspace:*",
-    "@sov/db": "workspace:*",
-    "@sov/compliance-engine": "workspace:*"
+    "@sov/db": "workspace:*"
   }
 }

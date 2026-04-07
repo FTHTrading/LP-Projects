@@ -1,12 +1,44 @@
 // Auth — session management, role-based access control, multi-sig approval
-// Stub: integrate with NextAuth.js or similar
+import { prisma } from '@sov/db';
 
-export type Role = 'admin' | 'compliance_officer' | 'treasury_officer' | 'market_ops' | 'investor' | 'viewer';
+export type Role =
+  | 'admin'
+  | 'compliance_officer'
+  | 'treasury_officer'
+  | 'market_ops'
+  | 'investor'
+  | 'viewer';
+
+const ROLE_PERMISSIONS: Record<Role, string[]> = {
+  admin: [
+    'token.mint',
+    'token.burn',
+    'token.freeze',
+    'compliance.create_rule',
+    'compliance.whitelist',
+    'reserve.register',
+    'treasury.settle',
+    'audit.export',
+    'attestation.publish',
+  ],
+  compliance_officer: [
+    'compliance.create_rule',
+    'compliance.whitelist',
+    'audit.export',
+    'attestation.publish',
+  ],
+  treasury_officer: ['treasury.settle', 'reserve.register', 'audit.export'],
+  market_ops: ['market.view', 'market.anomaly_ack'],
+  investor: ['investor.view_own'],
+  viewer: [],
+};
 
 export interface Session {
   userId: string;
+  sessionId: string;
   role: Role;
   permissions: string[];
+  expiresAt: string;
 }
 
 export function requireRole(session: Session | null, ...roles: Role[]): boolean {
@@ -19,12 +51,29 @@ export function requirePermission(session: Session | null, permission: string): 
   return session.permissions.includes(permission);
 }
 
-export async function getSession(): Promise<Session | null> {
-  // TODO: implement with NextAuth.js / auth provider
-  return null;
+export async function getSession(sessionId: string): Promise<Session | null> {
+  const session = await prisma.session.findFirst({
+    where: { id: sessionId, expiresAt: { gt: new Date() } },
+    include: { user: true },
+  });
+  if (!session) return null;
+
+  const role = session.user.role.toLowerCase() as Role;
+  return {
+    userId: session.userId,
+    sessionId: session.id,
+    role,
+    permissions: ROLE_PERMISSIONS[role] ?? [],
+    expiresAt: session.expiresAt.toISOString(),
+  };
 }
 
-export async function validateMultiSigApproval(_actionId: string, _requiredApprovals: number): Promise<boolean> {
-  // TODO: check approval count against threshold
-  return false;
+export async function validateMultiSigApproval(
+  actionId: string,
+  requiredApprovals: number,
+): Promise<boolean> {
+  const approvalCount = await prisma.adminApproval.count({
+    where: { actionId, decision: 'approved' },
+  });
+  return approvalCount >= requiredApprovals;
 }

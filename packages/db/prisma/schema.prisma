@@ -164,6 +164,8 @@ model TokenClass {
   reserveLinks          ReserveTokenLink[]
   liquiditySnapshots    LiquiditySnapshot[]
   spreadPolicies        SpreadPolicy[]
+  navSnapshots          NavSnapshot[]
+  issuerLinks           IssuerTokenLink[]
 
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
@@ -401,17 +403,20 @@ model ReserveStatusEvent {
 // ─── NAV ─────────────────────────────────────────────────
 
 model NavSnapshot {
-  id                    String   @id @default(cuid())
-  timestamp             DateTime @default(now())
-  totalReserveValue     Decimal  @db.Decimal(36, 6)
-  totalLiabilities      Decimal  @db.Decimal(36, 6)
-  netReserveValue       Decimal  @db.Decimal(36, 6)
-  tokenSupply           Decimal  @db.Decimal(36, 18)
-  navPerToken           Decimal  @db.Decimal(36, 6)
-  backingRatio          Decimal  @db.Decimal(12, 6)
+  id                    String      @id @default(cuid())
+  tokenId               String?
+  token                 TokenClass? @relation(fields: [tokenId], references: [id])
+  timestamp             DateTime    @default(now())
+  totalReserveValue     Decimal     @db.Decimal(36, 6)
+  totalLiabilities      Decimal     @db.Decimal(36, 6)
+  netReserveValue       Decimal     @db.Decimal(36, 6)
+  tokenSupply           Decimal     @db.Decimal(36, 18)
+  navPerToken           Decimal     @db.Decimal(36, 6)
+  backingRatio          Decimal     @db.Decimal(12, 6)
   methodology           String
-  sources               Json     // array of data sources
+  sources               Json        // array of data sources
 
+  @@index([tokenId])
   @@index([timestamp])
 }
 
@@ -700,3 +705,378 @@ model GovernanceDocument {
   @@index([type])
   @@index([published])
 }
+
+// ─── ISSUER & PROGRAM ────────────────────────────────────
+
+enum IssuerStage {
+  INTAKE
+  ASSESSMENT
+  REMEDIATION
+  ACTIVATION
+  LIVE
+  SUSPENDED
+}
+
+enum EntityType {
+  LLC
+  CORP
+  LTD
+  TRUST
+  SPV
+  FOUNDATION
+}
+
+enum RegulatoryStatus {
+  UNREGISTERED
+  PENDING
+  REGISTERED
+  EXEMPT
+}
+
+model IssuerProfile {
+  id                  String          @id @default(cuid())
+  entityName          String
+  entityType          EntityType
+  jurisdiction        String          // ISO 3166-1 alpha-2
+  regulatoryStatus    RegulatoryStatus @default(UNREGISTERED)
+  stage               IssuerStage     @default(INTAKE)
+
+  primaryContactName  String
+  primaryContactEmail String
+  primaryContactRole  String
+
+  bdName              String?
+  bdFinraId           String?
+  bdRelationshipStatus String?        // "none", "in_discussion", "signed", "active"
+
+  qualificationScore  Int             @default(0)
+  qualificationStatus String          @default("not_qualified") // "not_qualified", "conditional", "qualified"
+
+  notes               String?
+  activatedAt         DateTime?
+  suspendedAt         DateTime?
+  suspendedReason     String?
+
+  applications        IssuerApplication[]
+  tokenClasses        IssuerTokenLink[]
+
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@index([stage])
+  @@index([jurisdiction])
+}
+
+model IssuerApplication {
+  id              String        @id @default(cuid())
+  issuerId        String
+  issuer          IssuerProfile @relation(fields: [issuerId], references: [id])
+
+  stage           IssuerStage   @default(INTAKE)
+  qualificationScore Int        @default(0)
+  qualificationStatus String    @default("not_qualified")
+
+  tokenSymbol     String
+  tokenStandard   String        // "ERC-20", "ERC-3643"
+  blockchain      String
+  contractAddress String?
+  totalSupply     String
+  holderCount     Int           @default(0)
+  walletRestriction String      @default("open") // "open", "proprietary"
+  existingVenues  String[]
+
+  reserveAssetType String       // "gold", "silver", "minerals", "real_estate", "mixed", "other"
+  reserveCustodian String?
+  reserveClaimedValue String?
+  reserveLastAuditDate DateTime?
+  reserveAttestationStatus String @default("none") // "none", "self_reported", "third_party", "machine_verified"
+
+  remediationPlan Json?         // array of RemediationItem
+  fundingChannels Json?         // array of FundingChannel
+
+  estimatedCompletionWeeks Int? 
+  estimatedYear1Revenue String?
+
+  appliedAt       DateTime      @default(now())
+  assessedAt      DateTime?
+  activatedAt     DateTime?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([issuerId])
+  @@index([stage])
+}
+
+model IssuerTokenLink {
+  id        String        @id @default(cuid())
+  issuerId  String
+  issuer    IssuerProfile @relation(fields: [issuerId], references: [id])
+  tokenId   String
+  token     TokenClass    @relation(fields: [tokenId], references: [id])
+  role      String        @default("issuer") // "issuer", "co_issuer"
+  linkedAt  DateTime      @default(now())
+
+  @@unique([issuerId, tokenId])
+  @@index([issuerId])
+  @@index([tokenId])
+}
+
+// ─── JURISDICTION POLICY ─────────────────────────────────
+
+enum JurisdictionPolicyStatus {
+  ALLOWED
+  RESTRICTED
+  BLOCKED
+}
+
+model JurisdictionPolicy {
+  id             String                   @id @default(cuid())
+  countryCode    String                   @unique // ISO 3166-1 alpha-2
+  countryName    String
+  status         JurisdictionPolicyStatus @default(ALLOWED)
+  allowedInvestorTypes String[]           // InvestorType values
+  notes          String?
+  updatedBy      String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  @@index([status])
+}
+
+// ─── SETTLEMENT WALLETS ──────────────────────────────────
+
+enum WalletType {
+  EXODUS
+  METAMASK
+  COINBASE_WALLET
+  FIREBLOCKS
+  LEDGER
+  TREZOR
+  PROPRIETARY
+  OTHER
+}
+
+model SettlementWallet {
+  id                String     @id @default(cuid())
+  label             String
+  address           String
+  walletType        WalletType
+  network           String     // "ethereum", "polygon", "solana"
+  investorId        String?
+  verified          Boolean    @default(false)
+  verifiedAt        DateTime?
+  tradeDeskAccepted Boolean    @default(false)
+  notes             String?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@unique([address, network])
+  @@index([investorId])
+  @@index([network])
+}
+
+// ─── MARKET MAKER ────────────────────────────────────────
+
+enum MarketMakerStatus {
+  ONBOARDING
+  ACTIVE
+  SUSPENDED
+  TERMINATED
+}
+
+model MarketMaker {
+  id                  String           @id @default(cuid())
+  name                String
+  entityName          String
+  status              MarketMakerStatus @default(ONBOARDING)
+  venueId             String?          // primary venue (optional link to Venue)
+  walletAddresses     String[]
+  minBidDepthUsd      Decimal          @db.Decimal(36, 2)
+  minAskDepthUsd      Decimal          @db.Decimal(36, 2)
+  maxSpreadBps        Int              @default(200)
+  uptimeRequirementPct Decimal         @db.Decimal(5, 2) @default(95)
+  quoteResponseSecs   Int              @default(60)
+  onboardedAt         DateTime?
+  suspendedAt         DateTime?
+  terminatedAt        DateTime?
+  notes               String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  @@index([status])
+}
+
+// ─── OTC DESK / RFQ ──────────────────────────────────────
+
+enum OtcRfqStatus {
+  SUBMITTED
+  QUOTED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  EXECUTED
+  CANCELLED
+}
+
+enum OtcDirection {
+  BUY
+  SELL
+}
+
+model OtcRfq {
+  id              String       @id @default(cuid())
+  investorId      String
+  tokenSymbol     String
+  direction       OtcDirection
+  requestedAmount Decimal      @db.Decimal(36, 18)
+  settlementCurrency String    @default("USDC")
+  status          OtcRfqStatus @default(SUBMITTED)
+  submittedAt     DateTime     @default(now())
+  quoteExpiresAt  DateTime?
+  executedAt      DateTime?
+  cancelledAt     DateTime?
+  notes           String?
+
+  quotes          OtcQuote[]
+  trades          OtcTrade[]
+
+  @@index([investorId])
+  @@index([status])
+  @@index([submittedAt])
+}
+
+model OtcQuote {
+  id           String       @id @default(cuid())
+  rfqId        String
+  rfq          OtcRfq       @relation(fields: [rfqId], references: [id])
+  navAtQuote   Decimal      @db.Decimal(36, 6)
+  spreadBps    Int
+  quotedPrice  Decimal      @db.Decimal(36, 6)
+  totalAmount  Decimal      @db.Decimal(36, 6)
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  rejectedAt   DateTime?
+  generatedBy  String       // "system", userId
+  createdAt    DateTime     @default(now())
+
+  @@index([rfqId])
+}
+
+model OtcTrade {
+  id               String   @id @default(cuid())
+  rfqId            String
+  rfq              OtcRfq   @relation(fields: [rfqId], references: [id])
+  quoteId          String
+  settledPrice     Decimal  @db.Decimal(36, 6)
+  settledAmount    Decimal  @db.Decimal(36, 18)
+  settlementValue  Decimal  @db.Decimal(36, 6)
+  settlementTxHash String?
+  approvedBy       String?
+  settledAt        DateTime @default(now())
+
+  @@index([rfqId])
+}
+
+// ─── MIGRATION ───────────────────────────────────────────
+
+enum MigrationBatchStatus {
+  DRAFT
+  SNAPSHOT_COMPLETE
+  SCREENING_COMPLETE
+  ELIGIBLE_MINTED
+  COMPLETE
+  CANCELLED
+}
+
+model MigrationBatch {
+  id                   String               @id @default(cuid())
+  name                 String
+  legacyTokenSymbol    String               // e.g., "MPRA"
+  legacyContractAddress String
+  legacyChainId        Int
+  targetTokenSymbol    String               // e.g., "SMPRA"
+  status               MigrationBatchStatus @default(DRAFT)
+
+  snapshotBlockNumber  Int?
+  snapshotTimestamp    DateTime?
+  totalHolders         Int                  @default(0)
+  eligibleHolders      Int                  @default(0)
+  ineligibleHolders    Int                  @default(0)
+  deferredHolders      Int                  @default(0)
+
+  kycWindowOpensAt     DateTime?
+  kycWindowClosesAt    DateTime?
+  mintExecutedAt       DateTime?
+  completedAt          DateTime?
+  cancelledAt          DateTime?
+
+  operators            String[]             // userIds of operators
+  notes                String?
+
+  holders              MigrationHolder[]
+
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  @@index([status])
+  @@index([legacyTokenSymbol])
+}
+
+enum MigrationHolderStatus {
+  PENDING_KYC
+  KYC_SUBMITTED
+  ELIGIBLE
+  INELIGIBLE
+  DEFERRED
+  MINTED
+  CLAIMED
+  APPEAL_SUBMITTED
+  APPEAL_APPROVED
+  APPEAL_REJECTED
+}
+
+model MigrationHolder {
+  id                String               @id @default(cuid())
+  batchId           String
+  batch             MigrationBatch       @relation(fields: [batchId], references: [id])
+
+  legacyAddress     String
+  legacyBalance     String               // raw on-chain balance string
+  snapshotBlock     Int
+  snapshotTimestamp DateTime
+
+  investorId        String?              // linked if KYC completed
+  kycStatus         KycStatus            @default(NOT_STARTED)
+  kycCompletedAt    DateTime?
+  countryCode       String?
+
+  status            MigrationHolderStatus @default(PENDING_KYC)
+  ineligibleReason  String?
+  deferredReason    String?
+
+  newAddress        String?              // destination wallet for new tokens
+  mintedAmount      String?
+  mintTxHash        String?
+  mintedAt          DateTime?
+
+  claimSubmittedAt  DateTime?
+  claimApprovedAt   DateTime?
+  claimRejectedAt   DateTime?
+  claimRejectedReason String?
+
+  notes             String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@unique([batchId, legacyAddress])
+  @@index([batchId])
+  @@index([status])
+  @@index([legacyAddress])
+}
+
+// ─── NAV SNAPSHOT — link to token ────────────────────────
+// Note: NavSnapshot already exists above; this extends it via a separate
+// model so we don't break the existing schema. The NavSnapshot model will
+// be amended directly to add tokenId.
+

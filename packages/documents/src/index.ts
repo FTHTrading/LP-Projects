@@ -1,8 +1,6 @@
 // Documents — file storage, versioning, access control, download
 // Stub: implement with S3-compatible storage + Prisma Document model
 
-import type { AttestationDocument } from '@sov/shared-types';
-
 export async function uploadDocument(_file: Buffer, _metadata: {
   title: string;
   type: string;
